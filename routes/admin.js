@@ -34,5 +34,5 @@ adminRouter.get("/course/bulk", function(req,res){
 })
 
 module.exports = {
-    courseRouter: courseRouter
+    adminRouter: adminRouter
 }
