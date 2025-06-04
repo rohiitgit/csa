@@ -1,13 +1,15 @@
 const { Router } = require('express');
 const { courseRouter } = require('./course');
-const { adminModel } = require('../db');
+const { adminModel, courseModel } = require('../db');
 const jwt = require('jsonwebtoken')
+const {JWT_ADMIN_PASSWORD} = require("./../config");
+const { adminMiddleware } = require('../middlewares/admin');
 
-const JWT_ADMIN_PASSWORD = 'starterpackboss'
+
 
 const adminRouter = Router();
 
-adminRouter.post("/signup", async function(req,res){
+adminRouter.post("/signup", adminMiddleware,  async function(req,res){
     try{
         const { email, password, firstName, lastName } = req.body;
         // TODO: add zod validation and hash the password
@@ -31,7 +33,7 @@ adminRouter.post("/signup", async function(req,res){
     }
 })
 
-adminRouter.post("/signin", async function(req,res){
+adminRouter.post("/signin", adminMiddleware, async function(req,res){
 
     //ideally password should be hashed, and hence you cant compare the user provided password and database password
 
@@ -64,22 +66,82 @@ adminRouter.post("/signin", async function(req,res){
 
 })
 
-adminRouter.post("/", function(req,res){
-    res.json({
-        message: "create course endpoint"
-    })
+adminRouter.post("/", adminMiddleware, async function(req,res){
+
+    try{
+        const adminId = req.userId;
+
+        const { title, description, imageUrl, price } = req.body;
+
+        const course = await courseModel.create({
+            title, description, imageUrl, price
+        })
+
+        res.json({
+            message: "Course created",
+            courseId: course._id
+        })
+    } catch (e){
+        res.status(401).send({
+            message: `${e} Error`
+        })
+
+    }
 })
 
-adminRouter.put("/", function(req,res){
-    res.json({
-        message: "create course endpoint"
-    })
-})
+adminRouter.put("/", adminMiddleware, async function(req, res) {
+    try {
+        adminId = req.userId;
+        // 1. Get courseId and updated fields from req.body
+        const { courseId, title, description, imageUrl, price } = req.body;
 
-adminRouter.get("/bulk", function(req,res){
-    res.json({
-        message: "create course endpoint"
-    })
+        // 2. Build the update object only with provided fields
+        const fields = ["title", "description", "imageUrl", "price"]
+        const updatedFields = {}
+
+        fields.forEach(fields => {
+            if (req.body[fields] !== undefined){
+                updatedFields[fields] = req.body[fields]
+            }
+        });
+        // 3. Use findOneAndUpdate with filter and update
+
+        const course = await courseModel.findOneAndUpdate(
+            { _id: courseId,
+                creatorId: adminId
+             },
+            updatedFields,
+            { new: true }
+        )
+
+        // 4. Send back a success message or the updated course
+        res.json({
+            success: true,
+            message: "Course updated",
+            courseId: course._id
+        })
+    } catch (e) {
+        res.status(500).json({ message: `${e} Error` });
+    }
+});
+
+
+adminRouter.get("/bulk", adminMiddleware, async function(req,res){
+    try{
+        const adminId = req.userId;
+        const courses = await courseModel.findOne({
+            creatorId: adminId
+        })
+
+        res.json({
+            message: "All courses",
+            courses
+        })
+    } catch(e){
+        res.status(500).json({
+            message: `${e} Error`
+        })
+    }
 })
 
 module.exports = {
