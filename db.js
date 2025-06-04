@@ -1,10 +1,12 @@
 import mongoose, { mongo } from "mongoose";
-require('dotenv').config();
+import dotenv from 'dotenv';
+dotenv.config();
+
 
 mongoose.connect(process.env.URI)
 
 const ObjectId = mongoose.Types.ObjectId;
-const { Schema, default:mongoose } = mongoose;
+const { Schema } = mongoose;
 
 const userSchema = new Schema({
     email : {type: String, unique: true},
@@ -40,7 +42,7 @@ const adminModel = mongoose.model("admin", adminSchema);
 const courseModel = mongoose.model('course', courseSchema);
 const purchaseModel =  mongoose.model('purchase', purchaseSchema)
 
-module.exports = {
+export {
     userModel,
     adminModel,
     courseModel,
